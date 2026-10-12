@@ -37,16 +37,6 @@ public class Crystalix {
     }
     
     @SubscribeEvent
-    private static void opInDev(final PlayerEvent.PlayerLoggedInEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer entity)) return;
-        if (SharedConstants.IS_RUNNING_IN_IDE) {
-            ServerLevel level = entity.serverLevel();
-            MinecraftServer server = level.getServer();
-            server.getPlayerList().op(entity.getGameProfile());
-        }
-    }
-    
-    @SubscribeEvent
     private static void onConfigLoad(final ModConfigEvent.Loading event) {
         Crystalix.getInstance().getLoader().update(event.getConfig().getSpec());
     }
