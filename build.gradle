@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.115'
+    id 'com.hypherionmc.modutils.modpublisher' version '2.2.2'
     id 'idea'
 }
 
@@ -9,7 +10,7 @@ tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = mod_version
+version = mod_version + "+" + minecraft_version
 group = mod_group_id
 
 base {
@@ -142,6 +143,11 @@ publishing {
             url "file://${project.projectDir}/repo"
         }
     }
+}
+
+publisher {
+    setCurseID("1187033")
+    setGameVersions(minecraft_version)
 }
 
 tasks.withType(JavaCompile).configureEach {
