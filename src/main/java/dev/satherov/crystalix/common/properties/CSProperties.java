@@ -6,9 +6,11 @@ import lombok.experimental.Accessors;
 import dev.satherov.crystalix.Crystalix;
 import dev.satherov.crystalix.client.lang.CSLanguage;
 import dev.satherov.crystalix.client.lang.CSTranslatable;
+import dev.satherov.crystalix.config.CSServerConfig;
 import dev.satherov.crystalix.core.CSRegistry;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.StreamCodec;
@@ -46,6 +48,7 @@ public final class CSProperties {
     public static final ResourceLocation GHOST = Crystalix.rl("ghost");
     public static final ResourceLocation LIGHT = Crystalix.rl("light");
     public static final ResourceLocation COLOR = Crystalix.rl("color");
+    public static final ResourceLocation APPLY_COLORLESS = Crystalix.rl("apply_colorless");
     
     private final @Getter Map<ResourceLocation, IProperty<?>> properties;
     
@@ -92,6 +95,15 @@ public final class CSProperties {
     
     public IProperty<?> get(int index) {
         return this.properties.values().toArray(IProperty<?>[]::new)[index];
+    }
+    
+    public static boolean isEditable(ResourceLocation location) {
+        return !CSServerConfig.getDisabledProperties().contains(location.getPath());
+    }
+    
+    public static Predicate<ResourceLocation> applicable(Player player) {
+        final boolean operator = player.hasPermissions(Commands.LEVEL_GAMEMASTERS);
+        return location -> operator || CSProperties.isEditable(location);
     }
     
     @Accessors(fluent = true)

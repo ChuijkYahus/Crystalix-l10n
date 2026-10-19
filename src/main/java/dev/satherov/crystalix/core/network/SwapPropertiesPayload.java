@@ -6,10 +6,8 @@ import dev.satherov.crystalix.Crystalix;
 import dev.satherov.crystalix.common.block.CrystalixGlass;
 import dev.satherov.crystalix.common.block.CrystalixGlassTile;
 import dev.satherov.crystalix.common.item.CrystalixWand;
-import dev.satherov.crystalix.common.properties.CSBooleanProperty;
-import dev.satherov.crystalix.common.properties.CSEnumProperty;
-import dev.satherov.crystalix.common.properties.CSIntegerProperty;
 import dev.satherov.crystalix.common.properties.CSProperties;
+import dev.satherov.crystalix.common.properties.IProperty;
 
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -17,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -48,7 +47,6 @@ public record SwapPropertiesPayload(BlockPos pos) implements CustomPacketPayload
         this(buffer.readBlockPos());
     }
     
-    @SuppressWarnings("unchecked")
     public static void handle(final SwapPropertiesPayload message, final IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.flow().isServerbound() && ctx.player() instanceof ServerPlayer player) {
@@ -61,18 +59,18 @@ public record SwapPropertiesPayload(BlockPos pos) implements CustomPacketPayload
                 BlockEntity entity = level.getBlockEntity(pos);
                 CSProperties properties = CSProperties.of(wand);
                 
-                ((CSBooleanProperty) properties.properties().get(CSProperties.SHADELESS)).set(state.getValue(CrystalixGlass.SHADELESS));
-                ((CSBooleanProperty) properties.properties().get(CSProperties.INVISIBLE)).set(state.getValue(CrystalixGlass.INVISIBLE));
-                ((CSBooleanProperty) properties.properties().get(CSProperties.CLEAR)).set(state.getValue(CrystalixGlass.TRANSPARENT));
-                ((CSEnumProperty<CSProperties.Light>) properties.properties().get(CSProperties.LIGHT)).set(state.getValue(CrystalixGlass.LIGHT));
-                ((CSEnumProperty<CSProperties.Ghost>) properties.properties().get(CSProperties.GHOST)).set(state.getValue(CrystalixGlass.GHOST));
+                SwapPropertiesPayload.pick(properties, CSProperties.SHADELESS, state.getValue(CrystalixGlass.SHADELESS));
+                SwapPropertiesPayload.pick(properties, CSProperties.INVISIBLE, state.getValue(CrystalixGlass.INVISIBLE));
+                SwapPropertiesPayload.pick(properties, CSProperties.CLEAR, state.getValue(CrystalixGlass.TRANSPARENT));
+                SwapPropertiesPayload.pick(properties, CSProperties.LIGHT, state.getValue(CrystalixGlass.LIGHT));
+                SwapPropertiesPayload.pick(properties, CSProperties.GHOST, state.getValue(CrystalixGlass.GHOST));
                 
                 if (entity instanceof CrystalixGlassTile tile) {
-                    ((CSBooleanProperty) properties.properties().get(CSProperties.CONDUCTOR)).set(tile.isConductor());
-                    ((CSBooleanProperty) properties.properties().get(CSProperties.REDSTONE)).set(tile.isRedstone());
-                    ((CSBooleanProperty) properties.properties().get(CSProperties.REINFORCED)).set(tile.isReinforced());
-                    ((CSBooleanProperty) properties.properties().get(CSProperties.WATERLOGGABLE)).set(tile.isWaterloggable());
-                    ((CSIntegerProperty) properties.properties().get(CSProperties.COLOR)).set(tile.getColor());
+                    SwapPropertiesPayload.pick(properties, CSProperties.CONDUCTOR, tile.isConductor());
+                    SwapPropertiesPayload.pick(properties, CSProperties.REDSTONE, tile.isRedstone());
+                    SwapPropertiesPayload.pick(properties, CSProperties.REINFORCED, tile.isReinforced());
+                    SwapPropertiesPayload.pick(properties, CSProperties.WATERLOGGABLE, tile.isWaterloggable());
+                    SwapPropertiesPayload.pick(properties, CSProperties.COLOR, tile.getColor());
                 }
                 
                 player.getInventory().setChanged();
@@ -81,5 +79,14 @@ public record SwapPropertiesPayload(BlockPos pos) implements CustomPacketPayload
             SwapPropertiesPayload.log.error("Failed to pick wand properties from BlockState", e);
             return null;
         });
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static <VALUE> void pick(CSProperties properties, ResourceLocation location, VALUE value) {
+        if (!CSProperties.isEditable(location)) {
+            return;
+        }
+        
+        ((IProperty<VALUE>) properties.properties().get(location)).set(value);
     }
 }

@@ -56,6 +56,10 @@ public record CyclePropertyPayload(ResourceLocation key, boolean dir) implements
                     return;
                 }
                 
+                if (!CSProperties.isEditable(message.key())) {
+                    return;
+                }
+                
                 property.next(message.dir());
                 player.getInventory().setChanged();
             }

@@ -42,7 +42,7 @@ public record SetColorPayload(int color) implements CustomPacketPayload {
         ctx.enqueueWork(() -> {
             if (ctx.flow().isServerbound() && ctx.player() instanceof ServerPlayer player) {
                 ItemStack wand = CrystalixWand.find(player);
-                if (wand.isEmpty()) return;
+                if (wand.isEmpty() || !CSProperties.isEditable(CSProperties.COLOR)) return;
                 
                 CSProperties properties = CSProperties.of(wand);
                 CSIntegerProperty prop = (CSIntegerProperty) properties.properties().get(CSProperties.COLOR);

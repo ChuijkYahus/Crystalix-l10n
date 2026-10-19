@@ -11,6 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -34,6 +35,8 @@ import xfacthd.framedblocks.api.util.CamoMessageVerbosity;
 import xfacthd.framedblocks.api.util.ConfigView;
 import xfacthd.framedblocks.api.util.Utils;
 
+import java.util.function.Predicate;
+
 final class CrystalixGlassCamoContainerFactory extends AbstractBlockCamoContainerFactory<CrystalixGlassCamoContainer> {
     
     private static final MapCodec<CrystalixGlassCamoContainer> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
@@ -51,11 +54,11 @@ final class CrystalixGlassCamoContainerFactory extends AbstractBlockCamoContaine
     
     @Override
     protected CrystalixGlassCamoContainer createContainer(BlockState camoState, Level level, BlockPos pos, Player player, ItemStack stack) {
-        return CrystalixGlassCamoContainerFactory.createContainer(camoState, CrystalixWand.find(player), CrystalixGlassCamoContainerFactory.DEFAULT_TINT);
+        return CrystalixGlassCamoContainerFactory.createContainer(camoState, CrystalixWand.find(player), CSProperties.applicable(player), CrystalixGlassCamoContainerFactory.DEFAULT_TINT);
     }
     
-    private static CrystalixGlassCamoContainer createContainer(BlockState camoState, ItemStack wandStack, int tintColor) {
-        if (!wandStack.getOrDefault(CSRegistry.APPLY_COLORLESS, false)) {
+    private static CrystalixGlassCamoContainer createContainer(BlockState camoState, ItemStack wandStack, Predicate<ResourceLocation> applicable, int tintColor) {
+        if (applicable.test(CSProperties.COLOR) && !wandStack.getOrDefault(CSRegistry.APPLY_COLORLESS, false)) {
             tintColor = wandStack.getOrDefault(CSRegistry.COLOR, CrystalixGlassCamoContainerFactory.DEFAULT_TINT);
         }
         return new CrystalixGlassCamoContainer(camoState, tintColor);
@@ -65,16 +68,16 @@ final class CrystalixGlassCamoContainerFactory extends AbstractBlockCamoContaine
     @Nullable
     protected BlockState getStateFromItemStack(Level level, BlockPos pos, Player player, ItemStack stack) {
         if (stack.getItem() instanceof BlockItem item) {
-            return CrystalixGlassCamoContainerFactory.applyWandModifiers(item.getBlock().defaultBlockState(), CrystalixWand.find(player));
+            return CrystalixGlassCamoContainerFactory.applyWandModifiers(item.getBlock().defaultBlockState(), CrystalixWand.find(player), CSProperties.applicable(player));
         }
         return null;
     }
     
-    private static BlockState applyWandModifiers(BlockState state, ItemStack wand) {
+    private static BlockState applyWandModifiers(BlockState state, ItemStack wand, Predicate<ResourceLocation> applicable) {
         if (!(state.getBlock() instanceof CrystalixGlass glass)) return state;
         
         // Apply properties from wand and reset unsupported ones to their default values
-        BlockState newState = glass.fromStack(state, wand).setValue(CrystalixGlass.GHOST, CSProperties.Ghost.BLOCK_ALL);
+        BlockState newState = glass.fromStack(state, wand, applicable).setValue(CrystalixGlass.GHOST, CSProperties.Ghost.BLOCK_ALL);
         CSProperties.Light light = newState.getValue(CrystalixGlass.LIGHT);
         if (light != CSProperties.Light.NONE && light != CSProperties.Light.LIGHT) {
             newState = newState.setValue(CrystalixGlass.LIGHT, CSProperties.Light.NONE);
@@ -127,8 +130,9 @@ final class CrystalixGlassCamoContainerFactory extends AbstractBlockCamoContaine
     @Override
     public CrystalixGlassCamoContainer handleInteraction(Level level, BlockPos pos, Player player, CrystalixGlassCamoContainer camo, ItemStack stack, InteractionHand hand) {
         if (stack.is(CSRegistry.WAND)) {
-            BlockState state = CrystalixGlassCamoContainerFactory.applyWandModifiers(camo.getState(), stack);
-            return CrystalixGlassCamoContainerFactory.createContainer(state, stack, camo.getTintColor());
+            Predicate<ResourceLocation> applicable = CSProperties.applicable(player);
+            BlockState state = CrystalixGlassCamoContainerFactory.applyWandModifiers(camo.getState(), stack, applicable);
+            return CrystalixGlassCamoContainerFactory.createContainer(state, stack, applicable, camo.getTintColor());
         }
         return camo;
     }
