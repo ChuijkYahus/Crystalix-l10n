@@ -35,6 +35,7 @@ public class RadialMenuScreen extends Screen {
     private static final int OUTER_RADIUS = 125;
     private static final int HOVER_EXTEND = 20;
     private static final int CENTER_DEAD_ZONE = 20;
+    private static final int DISABLED_TEXT_COLOR = 0xFF555555;
     
     private final List<RadialMenuItem> menuItems = new ArrayList<>();
     private int hoveredIndex = -1;
@@ -108,10 +109,12 @@ public class RadialMenuScreen extends Screen {
         float labelCenterX = centerX + (float) (Math.cos(midRad) * labelRadius);
         float labelCenterY = centerY + (float) (Math.sin(midRad) * labelRadius);
         
-        int textColor = isHovered ? 0xFFFFFFFF : 0xFFAAAAAA;
+        boolean editable = CSProperties.isEditable(property.location());
+        int textColor = editable ? (isHovered ? 0xFFFFFFFF : 0xFFAAAAAA) : RadialMenuScreen.DISABLED_TEXT_COLOR;
+        Component value = editable ? property.display() : Component.literal(property.display().getString());
         
         int labelWidth = this.font.width(property.name());
-        int valueWidth = this.font.width(property.display());
+        int valueWidth = this.font.width(value);
         
         int totalTextHeight = this.font.lineHeight * 2;
         
@@ -120,7 +123,7 @@ public class RadialMenuScreen extends Screen {
         int textY = (int) (labelCenterY - totalTextHeight / 2.0f);
         
         graphics.drawString(this.font, property.name(), textX1, textY, textColor);
-        graphics.drawString(this.font, property.display(), textX2, textY + this.font.lineHeight, 0xFFFFFFFF);
+        graphics.drawString(this.font, value, textX2, textY + this.font.lineHeight, editable ? 0xFFFFFFFF : RadialMenuScreen.DISABLED_TEXT_COLOR);
         
         if (!isHovered) return;
         
@@ -128,7 +131,9 @@ public class RadialMenuScreen extends Screen {
         lines.add(property.name().withStyle(ChatFormatting.DARK_GRAY));
         lines.add(property.tooltip().withStyle(ChatFormatting.DARK_GRAY));
         
-        if (property.location().equals(CSProperties.COLOR)) {
+        if (!editable) {
+            lines.add(CSLanguage.TOOLTIP_DISABLED.text(ChatFormatting.RED));
+        } else if (property.location().equals(CSProperties.COLOR)) {
             lines.add(CSLanguage.TOOLTIP_MMB.text(
                     ChatFormatting.DARK_GRAY,
                     ComponentUtils.wrapInSquareBrackets(InputConstants.Type.MOUSE.getOrCreate(GLFW.GLFW_MOUSE_BUTTON_MIDDLE).getDisplayName().copy().withStyle(ChatFormatting.GOLD))
@@ -197,6 +202,7 @@ public class RadialMenuScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.hoveredIndex < 0 || this.hoveredIndex > this.menuItems.size()) return super.mouseClicked(mouseX, mouseY, button);
+        if (!CSProperties.isEditable(this.menuItems.get(this.hoveredIndex).property().location())) return true;
         if (button == 0 || button == 1) {
             RadialMenuItem item = this.menuItems.get(this.hoveredIndex);
             item.action().accept(button == 0);
@@ -213,6 +219,10 @@ public class RadialMenuScreen extends Screen {
     public boolean mouseScrolled(double mx, double my, double dx, double dy) {
         if (this.hoveredIndex >= 0 && this.hoveredIndex < this.menuItems.size()) {
             RadialMenuItem item = this.menuItems.get(this.hoveredIndex);
+            if (!CSProperties.isEditable(item.property().location())) {
+                return true;
+            }
+            
             item.action().accept(dy < 0);
             item.property().next(dy < 0);
             return true;

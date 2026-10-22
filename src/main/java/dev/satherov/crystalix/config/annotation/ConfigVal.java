@@ -64,4 +64,8 @@ public @interface ConfigVal {
         
         Class<? extends java.lang.Enum<?>> value();
     }
+    
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface List { }
 }

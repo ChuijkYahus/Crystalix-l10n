@@ -3,6 +3,7 @@ package dev.satherov.crystalix.util;
 import dev.satherov.crystalix.Crystalix;
 import dev.satherov.crystalix.client.lang.CSLanguage;
 import dev.satherov.crystalix.common.block.CrystalixGlass;
+import dev.satherov.crystalix.common.properties.CSProperties;
 import dev.satherov.crystalix.config.CSCommonConfig;
 
 import net.neoforged.bus.api.SubscribeEvent;
@@ -11,6 +12,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 @EventBusSubscriber(modid = Crystalix.MOD_ID)
 public class BatchProcessor {
@@ -74,6 +77,7 @@ public class BatchProcessor {
         private final ResourceKey<Level> dimension;
         private final BlockState state;
         private final ItemStack stack;
+        private final Predicate<ResourceLocation> applicable;
         
         private final Set<BlockPos> observed = new LinkedHashSet<>();
         private final ArrayDeque<BlockPos> frontier = new ArrayDeque<>();
@@ -90,6 +94,7 @@ public class BatchProcessor {
             this.dimension = player.level().dimension();
             this.state = state;
             this.stack = stack;
+            this.applicable = CSProperties.applicable(player);
             this.frontier.add(start);
             this.observed.add(start);
         }
@@ -154,9 +159,9 @@ public class BatchProcessor {
                 
                 BlockState visited = level.getBlockState(pos);
                 if (visited.getBlock() instanceof CrystalixGlass glass && visited.getBlock().equals(this.state.getBlock())) {
-                    BlockState apply = this.state.setValue(CrystalixGlass.WATERLOGGED, visited.getValue(CrystalixGlass.WATERLOGGED));
+                    BlockState apply = glass.fromStack(visited, this.stack, this.applicable);
                     
-                    if (!glass.setEntityProperties(level, pos, apply, this.stack)) {
+                    if (!glass.setEntityProperties(level, pos, apply, this.stack, this.applicable)) {
                         level.setBlockAndUpdate(pos, apply);
                     }
                 }

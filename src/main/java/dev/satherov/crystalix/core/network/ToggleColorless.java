@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import dev.satherov.crystalix.Crystalix;
 import dev.satherov.crystalix.client.lang.CSLanguage;
 import dev.satherov.crystalix.common.item.CrystalixWand;
+import dev.satherov.crystalix.common.properties.CSProperties;
 import dev.satherov.crystalix.core.CSRegistry;
 
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -45,7 +46,7 @@ public record ToggleColorless(boolean enabled) implements CustomPacketPayload {
         ctx.enqueueWork(() -> {
             if (ctx.flow().isServerbound() && ctx.player() instanceof ServerPlayer player) {
                 ItemStack wand = CrystalixWand.find(player);
-                if (wand.isEmpty()) return;
+                if (wand.isEmpty() || !CSProperties.isEditable(CSProperties.APPLY_COLORLESS)) return;
                 wand.set(CSRegistry.APPLY_COLORLESS, message.enabled());
                 player.displayClientMessage(
                         CSLanguage.PROPERTY_APPLY_COLORLESS.text(ChatFormatting.GRAY, message.enabled() ? CSLanguage.PROPERTY_ENABLED.text(ChatFormatting.DARK_GREEN) : CSLanguage.PROPERTY_DISABLED.text(ChatFormatting.DARK_RED)),

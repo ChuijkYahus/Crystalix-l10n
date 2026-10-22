@@ -22,6 +22,7 @@ public enum CSLanguage implements CSTranslatable {
     TOOLTIP_BULK("tooltip", "bulk", "Crouch to bulk edit"),
     TOOLTIP_COLORLESS("tooltip", "colorless", "%s to toggle apply without color"),
     TOOLTIP_MMB("tooltip", "mmb", "%s to open color picker"),
+    TOOLTIP_DISABLED("tooltip", "disabled", "Disabled by the server config"),
     TOOLTIP_LMB("tooltip", "lmb", "%s or %s to cycle forward"),
     TOOLTIP_RMB("tooltip", "rmb", "%s or %s to cycle backward"),
     

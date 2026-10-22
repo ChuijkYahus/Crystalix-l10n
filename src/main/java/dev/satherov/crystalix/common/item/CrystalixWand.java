@@ -12,6 +12,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -27,6 +28,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 @NothingNull
 public class CrystalixWand extends Item {
@@ -87,11 +89,12 @@ public class CrystalixWand extends Item {
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof CrystalixGlass glass)) return false;
         ItemStack wand = CrystalixWand.find(player);
-        state = glass.fromStack(state, wand);
+        Predicate<ResourceLocation> applicable = CSProperties.applicable(player);
+        state = glass.fromStack(state, wand, applicable);
         
         if (player.isShiftKeyDown()) {
             BatchProcessor.schedule(BatchProcessor.Batch.of(player, pos, state, wand));
-        } else if (!glass.setEntityProperties(level, pos, state, wand)) {
+        } else if (!glass.setEntityProperties(level, pos, state, wand, applicable)) {
             level.setBlockAndUpdate(pos, state);
         }
         

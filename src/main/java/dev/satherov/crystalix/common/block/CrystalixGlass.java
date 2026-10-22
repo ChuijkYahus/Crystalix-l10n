@@ -13,6 +13,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.minecraft.client.renderer.chunk.RenderChunkRegion;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
@@ -56,6 +57,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 @NothingNull
 @Accessors(fluent = true)
@@ -115,7 +117,7 @@ public class CrystalixGlass extends SLBlock implements EntityBlock, SimpleWaterl
         ItemStack stack = player.getItemInHand(InteractionHand.OFF_HAND);
         
         if (stack.getItem() instanceof CrystalixWand) {
-            return this.fromStack(state, stack);
+            return this.fromStack(state, stack, CSProperties.applicable(player));
         }
         
         return state;
@@ -264,32 +266,56 @@ public class CrystalixGlass extends SLBlock implements EntityBlock, SimpleWaterl
         return CrystalixGlassTile.isRedstone(getter, pos) ? 15 : 0;
     }
     
-    public BlockState fromStack(BlockState state, ItemStack stack) {
+    public BlockState fromStack(BlockState state, ItemStack stack, Predicate<ResourceLocation> applicable) {
         if (stack.isEmpty() || !(stack.getItem() instanceof CrystalixWand)) return state;
         if (!(state.getBlock() instanceof CrystalixGlass)) return state;
         
-        state = state
-                .setValue(CrystalixGlass.INVISIBLE, Objects.requireNonNull(stack.get(CSRegistry.INVISIBLE)))
-                .setValue(CrystalixGlass.SHADELESS, Objects.requireNonNull(stack.get(CSRegistry.SHADELESS)))
-                .setValue(CrystalixGlass.TRANSPARENT, Objects.requireNonNull(stack.get(CSRegistry.TRANSPARENT)))
-                .setValue(CrystalixGlass.LIGHT, Objects.requireNonNull(stack.get(CSRegistry.LIGHT)))
-                .setValue(CrystalixGlass.GHOST, Objects.requireNonNull(stack.get(CSRegistry.GHOST)));
+        if (applicable.test(CSProperties.INVISIBLE)) {
+            state = state.setValue(CrystalixGlass.INVISIBLE, Objects.requireNonNull(stack.get(CSRegistry.INVISIBLE)));
+        }
+        
+        if (applicable.test(CSProperties.SHADELESS)) {
+            state = state.setValue(CrystalixGlass.SHADELESS, Objects.requireNonNull(stack.get(CSRegistry.SHADELESS)));
+        }
+        
+        if (applicable.test(CSProperties.CLEAR)) {
+            state = state.setValue(CrystalixGlass.TRANSPARENT, Objects.requireNonNull(stack.get(CSRegistry.TRANSPARENT)));
+        }
+        
+        if (applicable.test(CSProperties.LIGHT)) {
+            state = state.setValue(CrystalixGlass.LIGHT, Objects.requireNonNull(stack.get(CSRegistry.LIGHT)));
+        }
+        
+        if (applicable.test(CSProperties.GHOST)) {
+            state = state.setValue(CrystalixGlass.GHOST, Objects.requireNonNull(stack.get(CSRegistry.GHOST)));
+        }
         
         return state;
     }
     
-    public boolean setEntityProperties(BlockGetter getter, BlockPos pos, BlockState state, ItemStack stack) {
+    public boolean setEntityProperties(BlockGetter getter, BlockPos pos, BlockState state, ItemStack stack, Predicate<ResourceLocation> applicable) {
         BlockEntity be = getter.getBlockEntity(pos);
         if (!(be instanceof CrystalixGlassTile tile) || !(getter instanceof Level level)) return false;
         
-        if (!stack.getOrDefault(CSRegistry.APPLY_COLORLESS, false)) {
+        if (applicable.test(CSProperties.COLOR) && !stack.getOrDefault(CSRegistry.APPLY_COLORLESS, false)) {
             tile.setColor(state, stack.getOrDefault(CSRegistry.COLOR, 0xFFFFFF));
         }
         
-        tile.setReinforced(stack.getOrDefault(CSRegistry.REINFORCED, false));
-        tile.setConductor(stack.getOrDefault(CSRegistry.CONDUCTOR, false));
-        tile.setRedstone(stack.getOrDefault(CSRegistry.REDSTONE, false));
-        tile.setWaterloggable(stack.getOrDefault(CSRegistry.WATERLOGGABLE, false));
+        if (applicable.test(CSProperties.REINFORCED)) {
+            tile.setReinforced(stack.getOrDefault(CSRegistry.REINFORCED, false));
+        }
+        
+        if (applicable.test(CSProperties.CONDUCTOR)) {
+            tile.setConductor(stack.getOrDefault(CSRegistry.CONDUCTOR, false));
+        }
+        
+        if (applicable.test(CSProperties.REDSTONE)) {
+            tile.setRedstone(stack.getOrDefault(CSRegistry.REDSTONE, false));
+        }
+        
+        if (applicable.test(CSProperties.WATERLOGGABLE)) {
+            tile.setWaterloggable(stack.getOrDefault(CSRegistry.WATERLOGGABLE, false));
+        }
         
         level.setBlockAndUpdate(pos, state);
         level.updateNeighborsAt(pos, this);
@@ -307,7 +333,7 @@ public class CrystalixGlass extends SLBlock implements EntityBlock, SimpleWaterl
         if (!(placer instanceof ServerPlayer player)) return;
         
         ItemStack wand = CrystalixWand.find(player);
-        this.setEntityProperties(world, pos, state, wand);
+        this.setEntityProperties(world, pos, state, wand, CSProperties.applicable(player));
         
         super.setPlacedBy(level, pos, state, placer, stack);
     }

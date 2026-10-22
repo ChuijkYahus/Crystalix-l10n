@@ -145,6 +145,13 @@ public class ConfigLoader {
                     });
                     spec = builder.defineEnum(val.name(), (Enum) value);
                     
+                } else if (field.isAnnotationPresent(ConfigVal.List.class)) {
+                    if (obj == null) throw new NullPointerException("Config Field " + field.getName() + " is null");
+                    if (!(obj instanceof List value)) throw new IllegalArgumentException("Config Field " + field.getName() + " is not a List");
+                    builder.comment(" " + val.comment());
+                    builder.comment(" Default: " + value);
+                    spec = builder.defineListAllowEmpty(val.name(), value, () -> "", element -> element instanceof String);
+                    
                 } else throw new IllegalArgumentException("Field is annotated with @ConfigVal, but has no defined type");
                 cache.values.put(field, spec);
                 
